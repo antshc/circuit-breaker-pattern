@@ -38,9 +38,9 @@ CircuitBreakerStrategyOptions
 
 ### Half-Open
 
-- Limited probe requests allowed.
-- Only one request is sent as a probe while other requests are rejected.
-- Successful probe closes the circuit.
+- Half-Open state effectively allows only one concurrent probe request in Polly.
+- The circuit does not close automatically after `BreakDuration`; it closes only when the probe request succeeds and confirms dependency recovery.
+- There is no maximum duration that automatically closes the circuit; the circuit remains open until a successful Half-Open probe confirms dependency recovery.
 - Failed probe reopens the circuit.
 
 ## Options
