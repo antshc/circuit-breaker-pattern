@@ -39,6 +39,7 @@ CircuitBreakerStrategyOptions
 ### Half-Open
 
 - Limited probe requests allowed.
+- Only one request is sent as a probe while other requests are rejected.
 - Successful probe closes the circuit.
 - Failed probe reopens the circuit.
 
