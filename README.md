@@ -34,7 +34,7 @@ CircuitBreakerStrategyOptions
 
 - Requests rejected immediately.
 - No dependency call executed.
-- Duration controlled by `BreakDuration`.
+- Duration controlled by `BreakDuration` or `BreakDurationGenerator`.
 
 ### Half-Open
 
@@ -73,9 +73,44 @@ Example:
 
 ### `BreakDuration = TimeSpan.FromSeconds(30)`
 
-- Time the circuit stays open.
+- Fixed time the circuit stays open.
 - Matching requests fail fast during this period.
 - After this period, the circuit moves to half-open probing.
+
+### `BreakDurationGenerator`
+
+- Generates the open duration dynamically.
+- Can be used for fixed or exponential break duration.
+- Useful when the break duration must depend on failure context.
+- Prefer fixed duration for predictable recovery probes.
+- Use exponential duration when repeated breaks should wait longer before the next probe.
+
+Fixed break duration:
+
+```csharp
+BreakDurationGenerator = static _ =>
+    new ValueTask<TimeSpan>(TimeSpan.FromSeconds(30));
+```
+
+Exponential break duration:
+
+```csharp
+BreakDurationGenerator = static args =>
+{
+    var seconds = Math.Min(60, Math.Pow(2, args.FailureCount));
+    return new ValueTask<TimeSpan>(TimeSpan.FromSeconds(seconds));
+};
+```
+
+Example exponential sequence:
+
+```text
+Break #1: 2s
+Break #2: 4s
+Break #3: 8s
+Break #4: 16s
+Break #5+: capped at 60s
+```
 
 ### `ShouldHandle`
 
