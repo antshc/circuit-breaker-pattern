@@ -133,24 +133,6 @@ Retry -> Circuit Breaker -> Dependency
 - Open circuit prevents retry storms.
 - Backoff and jitter reduce synchronized retry spikes.
 
-## Azure Storage / External APIs
-
-Benefits:
-
-- Reduces throttling amplification.
-- Reduces wasted retries.
-- Reduces duplicated reads and writes.
-- Stabilizes recovery.
-- Protects shared dependencies under concurrency.
-
-Useful for:
-
-- Azure Blob Storage.
-- SQL or NoSQL databases.
-- REST APIs.
-- Message brokers.
-- Network services.
-
 ## Key Metrics
 
 Track:
