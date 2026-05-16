@@ -1,11 +1,173 @@
-# circuit-breaker-pattern
+# Polly Circuit Breaker
+
+## Configuration
+
 ```csharp
-static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
+CircuitBreakerStrategyOptions
 {
-    return HttpPolicyExtensions
-        .HandleTransientHttpError()
-        .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30));
-}
+    FailureRatio = 0.5,
+    SamplingDuration = TimeSpan.FromSeconds(10),
+    MinimumThroughput = 8,
+    BreakDuration = TimeSpan.FromSeconds(30),
+    ShouldHandle = new PredicateBuilder().Handle<SomeExceptionType>()
+};
 ```
 
-In the code example above, the circuit breaker policy is configured so it breaks or opens the circuit when there have been five consecutive faults when retrying the Http requests. When that happens, the circuit will break for 30 seconds: in that period, calls will be failed immediately by the circuit-breaker rather than actually be placed. The policy automatically interprets relevant exceptions and HTTP status codes as faults.
+## Purpose
+
+- Prevent cascading failures.
+- Stop traffic to unhealthy dependencies.
+- Fail fast during outages or throttling.
+- Reduce retry amplification.
+- Reduce wasted I/O.
+- Improve dependency recovery stability.
+
+## States
+
+### Closed
+
+- Normal operation.
+- Requests allowed.
+- Failures monitored.
+
+### Open
+
+- Requests rejected immediately.
+- No dependency call executed.
+- Duration controlled by `BreakDuration`.
+
+### Half-Open
+
+- Limited probe requests allowed.
+- Successful probe closes the circuit.
+- Failed probe reopens the circuit.
+
+## Options
+
+### `FailureRatio = 0.5`
+
+- Opens the circuit when failed requests are at least 50% of total requests.
+- Evaluated only when `MinimumThroughput` is reached.
+
+Example:
+
+- 10 requests, 5 failures: may open.
+- 10 requests, 4 failures: stays closed.
+
+### `SamplingDuration = TimeSpan.FromSeconds(10)`
+
+- Sliding evaluation window.
+- Only requests from the last 10 seconds are counted.
+- Older failures are ignored.
+
+### `MinimumThroughput = 8`
+
+- Minimum request count required before evaluation.
+- Prevents opening from low-traffic noise.
+
+Example:
+
+- 3 requests, 3 failures: ignored.
+- 8 requests, 5 failures: evaluated.
+
+### `BreakDuration = TimeSpan.FromSeconds(30)`
+
+- Time the circuit stays open.
+- Matching requests fail fast during this period.
+- After this period, the circuit moves to half-open probing.
+
+### `ShouldHandle`
+
+```csharp
+ShouldHandle = new PredicateBuilder().Handle<SomeExceptionType>()
+```
+
+- Defines which failures are counted by the breaker.
+- Only matching exceptions or results affect breaker state.
+
+Typical handled failures:
+
+- Timeouts.
+- HTTP 429.
+- HTTP 5xx.
+- Network failures.
+
+Usually ignored:
+
+- Validation errors.
+- Business rule exceptions.
+- Client misuse.
+
+## Evaluation Logic
+
+The circuit opens when:
+
+```text
+Failures / TotalRequests >= FailureRatio
+AND
+TotalRequests >= MinimumThroughput
+WITHIN SamplingDuration
+```
+
+Example:
+
+```text
+SamplingDuration: 10s
+MinimumThroughput: 8
+FailureRatio: 0.5
+Requests: 10
+Failures: 6
+Result: circuit opens
+```
+
+## Retry Interaction
+
+Recommended order:
+
+```text
+Retry -> Circuit Breaker -> Dependency
+```
+
+- Retry handles transient failures.
+- Circuit breaker handles sustained failures.
+- Open circuit prevents retry storms.
+- Backoff and jitter reduce synchronized retry spikes.
+
+## Azure Storage / External APIs
+
+Benefits:
+
+- Reduces throttling amplification.
+- Reduces wasted retries.
+- Reduces duplicated reads and writes.
+- Stabilizes recovery.
+- Protects shared dependencies under concurrency.
+
+Useful for:
+
+- Azure Blob Storage.
+- SQL or NoSQL databases.
+- REST APIs.
+- Message brokers.
+- Network services.
+
+## Key Metrics
+
+Track:
+
+- Open count.
+- Failure ratio.
+- Rejected requests.
+- Half-open probe success rate.
+- Half-open probe failure rate.
+- Retry count.
+- Dependency latency.
+- HTTP 429 rate.
+- HTTP 5xx rate.
+
+## Notes
+
+- Circuit breaker limits failure impact.
+- Circuit breaker does not fix the dependency.
+- Shared breaker is recommended for parallel workloads.
+- Combine with timeout, retry, backoff, jitter, telemetry, and backpressure.
