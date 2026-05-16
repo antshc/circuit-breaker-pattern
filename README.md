@@ -42,6 +42,7 @@ CircuitBreakerStrategyOptions
 - The circuit does not close automatically after `BreakDuration`; it closes only when the probe request succeeds and confirms dependency recovery.
 - There is no maximum duration that automatically closes the circuit; the circuit remains open until a successful Half-Open probe confirms dependency recovery.
 - Failed probe reopens the circuit.
+- After the circuit returns to `Closed`, `FailureRatio`, `MinimumThroughput`, and `SamplingDuration` evaluation starts again before the circuit can reopen.
 
 ## Options
 
