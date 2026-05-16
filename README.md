@@ -134,20 +134,6 @@ Retry -> Circuit Breaker -> Dependency
 - Open circuit prevents retry storms.
 - Backoff and jitter reduce synchronized retry spikes.
 
-## Key Metrics
-
-Track:
-
-- Open count.
-- Failure ratio.
-- Rejected requests.
-- Half-open probe success rate.
-- Half-open probe failure rate.
-- Retry count.
-- Dependency latency.
-- HTTP 429 rate.
-- HTTP 5xx rate.
-
 ## Notes
 
 - Circuit breaker limits failure impact.
