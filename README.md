@@ -120,7 +120,7 @@ Failures: 6
 Result: circuit opens
 ```
 
-## Retry Interaction
+## Circuit breaker Block mode (keep operation alive)
 
 Recommended order:
 
