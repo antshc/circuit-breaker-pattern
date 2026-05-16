@@ -123,16 +123,35 @@ Result: circuit opens
 
 ## Circuit breaker Block mode (keep operation alive)
 
-Recommended order:
+Recommended strategy:
 
 ```text
 Retry -> Circuit Breaker -> Dependency
 ```
 
-- Retry handles transient failures.
-- Circuit breaker handles sustained failures.
-- Open circuit prevents retry storms.
-- Backoff and jitter reduce synchronized retry spikes.
+- Use fixed `BreakDuration` on the circuit breaker.
+- Use exponential backoff on retries.
+- Fixed break duration provides predictable recovery probes.
+- Circuit breaker quickly checks external system availability after a known delay.
+- Exponential retry backoff prevents retry storms and excessive traffic spikes during dependency recovery.
+- Reduces wasted requests during outages.
+- Keeps operation alive while protecting the dependency.
+
+## Thundering herd prevention
+
+- Without exponential retry:
+  - Probe succeeds.
+  - Thundering herd floods the dependency.
+  - Azure re-throttles requests.
+  - Circuit oscillates between open and half-open states.
+
+- With exponential retry:
+  - Probe succeeds.
+  - Thundering herd is spread over time.
+  - Traffic ramps gradually:
+    - 50 → 120 → 200 → 300
+  - Dependency recovers without re-throttling.
+  - Circuit stability improves under concurrency.
 
 ## Notes
 
