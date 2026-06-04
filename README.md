@@ -44,6 +44,68 @@ CircuitBreakerStrategyOptions
 - Failed probe reopens the circuit.
 - After the circuit returns to `Closed`, `FailureRatio`, `MinimumThroughput`, and `SamplingDuration` evaluation starts again before the circuit can reopen.
 
+## Event Delegates
+
+Circuit breaker event delegates are useful for diagnostics, troubleshooting, and verifying state transitions.
+
+### `OnOpened`
+
+- Fired every time the circuit transitions to the `Open` state.
+- Fired again when a Half-Open probe fails and the circuit reopens.
+- Multiple `OnOpened` messages are expected during prolonged failures or repeated failed probes.
+
+### `OnHalfOpened`
+
+- Fired when the circuit transitions from `Open` to `Half-Open`.
+- Indicates that Polly allows a probe request to check whether the dependency has recovered.
+
+### `OnClosed`
+
+- Fired when the circuit transitions back to the `Closed` state.
+- Usually fired once after a successful Half-Open probe confirms dependency recovery.
+
+### Verification
+
+To verify that the circuit breaker is working correctly, add logging inside the event delegate handlers.
+
+Example:
+
+```csharp
+options.OnOpened = args =>
+{
+    logger.LogWarning("Circuit opened");
+    return ValueTask.CompletedTask;
+};
+
+options.OnHalfOpened = args =>
+{
+    logger.LogInformation("Circuit half-open");
+    return ValueTask.CompletedTask;
+};
+
+options.OnClosed = args =>
+{
+    logger.LogInformation("Circuit closed");
+    return ValueTask.CompletedTask;
+};
+```
+
+Expected log sequence during failure and recovery:
+
+```text
+Circuit opened
+Circuit half-open
+Circuit opened
+Circuit half-open
+Circuit opened
+...
+Circuit half-open
+Circuit closed
+```
+
+- Multiple `Circuit opened` log entries mean the circuit is reopening after failed probes.
+- A single `Circuit closed` log entry means the dependency recovered and the circuit returned to normal operation.
+
 ## Options
 
 ### `FailureRatio = 0.5`
